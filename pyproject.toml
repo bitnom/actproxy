@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "actproxy"
+version = "0.1.0"
+description = "Interface to actproxy.com's API and services."
+authors = ["TensorTom <14287229+TensorTom@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8.5"
+aiohttp = "^3.6.2"
+aiohttp-socks = "^0.5.5"
+mo-dots = "^3.93.20259"
+requests = {extras = ["socks"], version = "^2.24.0"}
+
+[tool.poetry.dev-dependencies]
+
+[tool.poetry.scripts]
+setupgen = "poetry.command_line:main"
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
+
