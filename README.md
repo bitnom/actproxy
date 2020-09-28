@@ -31,11 +31,12 @@ import requests
 
 actproxy_api_key = "xxxxxxxxxxxxxxxxxxxxxxxx"
 # Initialize API. Also returns your proxies.
-await actproxy.aioinit(actproxy_api_key)
+actproxy.init(actproxy_api_key)
 url = "http://dummy.restapiexample.com/api/v1/employees"
 resp = requests.get(url, proxies=actproxy.rotate())
 if resp.status_code == 200:
     resp_json = resp.json()
+    print(resp_json)
 ```
 
 ## Methods
