@@ -10,12 +10,20 @@ has_init = False
 
 
 class ActError(Exception):
+	""" General ActProxy exception. ActProxy also exports aiohttp[socks] exceptions: ProxyError, ProxyConnectionError,
+	ProxyTimeoutError"""
+
 	def __init__(self, message):
 		self.message = message
 		super().__init__(self.message)
 
 
 def act_parse_json(proxy_items):
+	"""
+	Parse the proxy list JSON supplied by ActProxy API.
+		:param proxy_items: List of proxy lines returned from ActProxy API.
+		:return: List of dicts containing proxies.
+	"""
 	global one_hot, proxies
 	for line in proxy_items:
 		line_spl = line.split(';')
@@ -31,20 +39,40 @@ def act_parse_json(proxy_items):
 
 
 def init(api_key, output_format='json', get_userpass=True):
+	"""
+	Synchronously initialize ActProxy API & return proxies from account.
+		:param api_key: ActProxy.com API key.
+		:param output_format: 'json' or 'raw'; must be 'json' to use connectors.
+		:param get_userpass: Include usernames & passwords in results? Must be True to use connectors.
+		:return: A mo-dots object (Eg: proxies[0].username or proxies[0]['username']) in the case of 'json' as
+				output_format. A Str in case of 'raw' as output_format.
+	"""
 	global proxies, one_hot, has_init
-	has_init = True
 	userpass = 'true' if get_userpass else 'false'
-	api_url = f'https://actproxy.com/proxy-api/{api_key}?format={output_format}&userpass={userpass}'
+	format_uri = '?format=json' if output_format == 'json' else ''
+	api_url = f'https://actproxy.com/proxy-api/{api_key}?format={format_uri}&userpass={userpass}'
 	resp = requests.get(api_url)
 	if resp.status_code == 200:
-		proxy_items = resp.json()
-		proxies = act_parse_json(proxy_items)
-		return to_data(proxies) if len(proxies) else None
+		if output_format == 'json':
+			proxy_items = resp.json()
+			proxies = act_parse_json(proxy_items)
+			has_init = True
+			return to_data(proxies) if len(proxies) else None
+		else:
+			return resp.text
 	else:
 		raise ActError(f"HTTP error {resp.status_code} contacting ActProxy.")
 
 
 async def aioinit(api_key, output_format='json', get_userpass=True):
+	"""
+	Asynchronously initialize ActProxy API & return proxies from account.
+		:param api_key: ActProxy.com API key.
+		:param output_format: 'json' or 'raw'; must be 'json' to use connectors.
+		:param get_userpass: Include usernames & passwords in results? Must be True to use connectors.
+		:return: A mo-dots object (Eg: proxies[0].username or proxies[0]['username']) in the case of 'json' as
+				output_format. A Str in case of 'raw' as output_format.
+	"""
 	global proxies, one_hot, has_init
 	has_init = True
 	userpass = 'true' if get_userpass else 'false'
@@ -60,6 +88,12 @@ async def aioinit(api_key, output_format='json', get_userpass=True):
 
 
 def rotate(protocol='socks5'):
+	"""
+	Get the next proxy in the one-hot rotation for use with the requests[socks] package after having once run
+	actproxy.init(output_format='json').
+		:param protocol: 'socks5' or 'http'; must correspond to your ActProxy proxies' type.
+		:return: Dict formatted for use in the requets[socks] package's proxies= parameter.
+	"""
 	proxy = one_hot_proxy()
 	requests_proxy = {
 		'http': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}',
@@ -69,23 +103,49 @@ def rotate(protocol='socks5'):
 
 
 def aiohttp_rotate(protocol='socks5'):
+	"""
+	Get an aiohttp connector that uses the next proxy in the one-hot rotation after having once run
+	actproxy.aioinit(output_format='json').
+		:param protocol: 'socks5' or 'http'; must correspond to your ActProxy proxies' type.
+		:return: An aiohttp connector set to use the next proxy.
+	"""
 	proxy = one_hot_proxy()
 	return ProxyConnector.from_url(f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}')
 
 
-def random_proxy():
+def random_proxy(protocol='socks5'):
+	"""
+	Get a random proxy from your account after having once run actproxy.init(output_format='json') or
+	actproxy.aioinit(output_format='json')
+		:param protocol: 'socks5' or 'http'; must be the same as your ActProxy proxies.
+		:return: A random proxy mo-dots (Dict-like) object.
+	"""
 	global proxies
 	last_prox = len(proxies) - 1
 	rand_prox = randrange(0, last_prox)
-	return proxies[rand_prox]
+	proxy = proxies[rand_prox]
+	requests_proxy = {
+		'http': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}',
+		'https': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}'
+	}
+	return requests_proxy
 
 
 def aiohttp_random(protocol='socks5'):
+	"""
+	Get a random aiohttp connector after having once run actproxy.aioinit(output_format='json')
+		:param protocol: 'socks5' or 'http'; must be the same as your ActProxy proxies.
+		:return:
+	"""
 	proxy = random_proxy()
 	return ProxyConnector.from_url(f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}')
 
 
 def one_hot_proxy():
+	"""
+	Get the next proxy in the one-hot rotation and flip the next proxy bit hot.
+		:return: mo-dots (Dict-like) object containing the proxy's various parameters.
+	"""
 	global one_hot, proxies
 	if not has_init:
 		raise ActError("First, run actproxy.init() or actproxy.aioinit()")
