@@ -1,7 +1,9 @@
-# actproxy (Python Package)
+# actproxy
 
-This Python package provides actproxy API access and proxy rotation methods for requests (synchronous) and aiohttp
-(asyncio).
+Python package providing [actproxy.com](https://actproxy.com/aff.php?aff=30) API access and proxy rotation methods for requests (synchronous) and aiohttp
+(asyncio). Can also be used independently. Supports socks5, http/https, and ipv4/ipv6 as per actproxy's services.
+
+[![PyPI license](https://img.shields.io/pypi/l/ansicolortags.svg)](https://pypi.org/project/actproxy/)
 
 ## Quick-Start (AIOHTTP)
 
@@ -58,3 +60,9 @@ requests[socks].
 
 `actproxy.one_hot_proxy()`: Similar to rotate() but returns a single proxy dict/object for use in places other than
 aiohttp or requests.
+
+## Changelog
+
+**0.1.3** - _9/29/2020_ : Minor fixes and addition of docstrings.
+
+**0.1.2** - _9/28/2020_ : Initial release version.
