@@ -5,8 +5,8 @@ description = "Sync & asyncio (Requests & AIOHTTP) proxy rotator + utils for act
 authors = ["TensorTom <14287229+TensorTom@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
-homepage = "https://github.com/TensorTom/actproxy"
-repository = "https://github.com/johnfraney/actproxy"
+homepage = "https://actproxy.com/aff.php?aff=30"
+repository = "https://github.com/tensortom/actproxy"
 keywords = ["python", "socks", "aiohttp", "requests", "python3", "socks5", "proxies", "rotate", "actproxy"]
 classifiers = [
     "Development Status :: 4 - Beta",
