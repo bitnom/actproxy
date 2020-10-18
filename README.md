@@ -43,20 +43,20 @@ if resp.status_code == 200:
 
 ## Methods
 
-`actproxy.aioinit(api_key)`: Fetches your proxies from ActProxy & returns them. Must be run before other aiohttp
+`actproxy.aioinitaioinit(api_keys=[], output_format='json', get_userpass=True)`: Fetches your proxies from ActProxy & returns them. Must be run before the other aiohttp
 functions.
 
-`actproxy.init(api_key)`: Fetches your proxies from ActProxy & returns them. Must be run before other synchronous
-functions.
+`actproxy.initinit(api_keys=[], output_format='json', get_userpass=True)`: Fetches your proxies from ActProxy & returns
+them. Must be run before the other synchronous functions.
 
-`actproxy.aiohttp_rotate()`: Returns an aiohttp connector which uses the next proxy from your list.
+`actproxy.aiohttp_rotate(protocol='socks5')`: Returns an aiohttp connector which uses the next proxy from your list.
 
-`actproxy.rotate()`: Returns the next proxy from your list. Return variable is suitable for use with requests[socks].
+`actproxy.rotate(protocol='socks5')`: Returns the next proxy from your list. Return variable is suitable for use with requests[socks].
 
-`actproxy.random_proxy()`: Returns a random proxy from your list. Return variable is suitable for use with
+`actproxy.random_proxy(protocol='socks5')`: Returns a random proxy from your list. Return variable is suitable for use with
 requests[socks].
 
-`actproxy.aiohttp_random()`: Returns an aiohttp connector which uses uses a random proxy from your list.
+`actproxy.aiohttp_random(protocol='socks5')`: Returns an aiohttp connector which uses uses a random proxy from your list.
 
 `actproxy.one_hot_proxy()`: Similar to rotate() but returns a single proxy dict/object for use in places other than
 aiohttp or requests.

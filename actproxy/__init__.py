@@ -24,21 +24,21 @@ def act_parse_json(proxy_items):
 		:param proxy_items: List of proxy lines returned from ActProxy API.
 		:return: List of dicts containing proxies.
 	"""
-	global one_hot, proxies
+	_proxies = []
 	for line in proxy_items:
 		line_spl = line.split(';')
 		host_spl = line_spl[0].split(':')
-		proxies.append({
-			'host': host_spl[0],
-			'port': host_spl[1],
-			'username': line_spl[1],
-			'password': line_spl[2]
-		})
-	one_hot = [0 for p in proxies]
-	return proxies
+		if len(host_spl) >= 3:
+			_proxies.append({
+				'host': host_spl[0],
+				'port': host_spl[1],
+				'username': line_spl[1],
+				'password': line_spl[2]
+			})
+	return _proxies
 
 
-def init(api_key, output_format='json', get_userpass=True):
+def init(api_keys=[], output_format='json', get_userpass=True):
 	"""
 	Synchronously initialize ActProxy API & return proxies from account.
 		:param api_key: ActProxy.com API key.
@@ -49,22 +49,31 @@ def init(api_key, output_format='json', get_userpass=True):
 	"""
 	global proxies, one_hot, has_init
 	userpass = 'true' if get_userpass else 'false'
-	format_uri = '?format=json' if output_format == 'json' else ''
-	api_url = f'https://actproxy.com/proxy-api/{api_key}?format={format_uri}&userpass={userpass}'
-	resp = requests.get(api_url)
-	if resp.status_code == 200:
-		if output_format == 'json':
-			proxy_items = resp.json()
-			proxies = act_parse_json(proxy_items)
-			has_init = True
-			return to_data(proxies) if len(proxies) else None
+	formatter = '&format=json' if output_format == 'json' else ''
+	proxies = []
+	proxies_csv = ''
+	for api_key in api_keys:
+		api_url = f'https://actproxy.com/proxy-api/{api_key}?userpass={userpass}{formatter}'
+		resp = requests.get(api_url)
+		if resp.status_code == 200:
+			if output_format == 'json':
+				proxy_items = resp.json()
+				_proxies = act_parse_json(proxy_items)
+				if len(proxies):
+					proxies.append(_proxies)
+					has_init = True
+			else:
+				proxies_csv += resp.text
 		else:
-			return resp.text
+			raise ActError(f"HTTP error {resp.status_code} contacting ActProxy.")
+	if output_format == 'json':
+		one_hot = [0 for p in proxies]
+		return to_data(proxies) if len(proxies) else None
 	else:
-		raise ActError(f"HTTP error {resp.status_code} contacting ActProxy.")
+		return proxies_csv
 
 
-async def aioinit(api_key, output_format='json', get_userpass=True):
+async def aioinit(api_keys=[], output_format='json', get_userpass=True):
 	"""
 	Asynchronously initialize ActProxy API & return proxies from account.
 		:param api_key: ActProxy.com API key.
@@ -74,17 +83,30 @@ async def aioinit(api_key, output_format='json', get_userpass=True):
 				output_format. A Str in case of 'raw' as output_format.
 	"""
 	global proxies, one_hot, has_init
-	has_init = True
-	userpass = 'true' if get_userpass else 'false'
 	async with ClientSession() as session:
-		api_url = f'https://actproxy.com/proxy-api/{api_key}?format={output_format}&userpass={userpass}'
-		async with session.get(api_url) as resp:
-			if resp.status == 200:
-				proxy_items = await resp.json(content_type=None)
-				proxies = act_parse_json(proxy_items)
-				return to_data(proxies) if len(proxies) else None
-			else:
-				raise ActError(f"HTTP error {resp.status} contacting ActProxy.")
+		userpass = 'true' if get_userpass else 'false'
+		formatter = '&format=json' if output_format == 'json' else ''
+		proxies = []
+		proxies_csv = ''
+		for api_key in api_keys:
+			api_url = f'https://actproxy.com/proxy-api/{api_key}?userpass={userpass}{formatter}'
+			async with session.get(api_url) as resp:
+				if resp.status == 200:
+					if output_format == 'json':
+						proxy_items = await resp.json(content_type=None)
+						_proxies = act_parse_json(proxy_items)
+						if len(_proxies):
+							proxies.append(_proxies)
+							has_init = True
+					else:
+						proxies_csv += await resp.text()
+				else:
+					raise ActError(f"HTTP error {resp.status} contacting ActProxy.")
+		if output_format == 'json':
+			one_hot = [0 for p in proxies]
+			return to_data(proxies) if len(proxies) else None
+		else:
+			return proxies_csv
 
 
 def rotate(protocol='socks5'):
