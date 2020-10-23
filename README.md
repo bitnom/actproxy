@@ -13,9 +13,12 @@ from aiohttp import ClientSession
 
 
 async def main():
-    actproxy_api_key = "xxxxxxxxxxxxxxxxxxxxxxxx"
+    actproxy_api_keys = [
+        "xxxxxxxxxxxxxxxxxxxxxxxx",
+        "xxxxxxxxxxxxxxxxxxxxxxxx"
+    ]
     # Initialize API. Also returns your proxies.
-    await actproxy.aioinit(actproxy_api_key)
+    await actproxy.aioinit(actproxy_api_keys)
     # Use a new AIOHTTP connector which rotates & uses the next proxy.
     async with ClientSession(connector=actproxy.aiohttp_rotate()) as session:
         url = "http://dummy.restapiexample.com/api/v1/employees"
@@ -31,9 +34,12 @@ async def main():
 import actproxy
 import requests
 
-actproxy_api_key = "xxxxxxxxxxxxxxxxxxxxxxxx"
+actproxy_api_keys = [
+    "xxxxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxxxx"
+]
 # Initialize API. Also returns your proxies.
-actproxy.init(actproxy_api_key)
+actproxy.init(actproxy_api_keys)
 url = "http://dummy.restapiexample.com/api/v1/employees"
 resp = requests.get(url, proxies=actproxy.rotate())
 if resp.status_code == 200:
@@ -62,6 +68,8 @@ requests[socks].
 aiohttp or requests.
 
 ## Changelog
+
+**0.1.4** - _10/23/2020_ : Support multiple API keys. Unit tests. Fixes.
 
 **0.1.3** - _9/29/2020_ : Minor fixes and addition of docstrings.
 

@@ -1,9 +1,10 @@
 from aiohttp import ClientSession
 from aiohttp_socks import ProxyType, ProxyConnector, ChainProxyConnector, ProxyError, \
 	ProxyConnectionError, ProxyTimeoutError
-from mo_dots import to_data
+from mo_dots import to_data, Data, DataObject, Null, NullType, FlatList, LIST
 from random import randrange
 import requests
+from typing import Union, Any
 
 proxies, one_hot = [], []
 has_init = False
@@ -18,17 +19,19 @@ class ActError(Exception):
 		super().__init__(self.message)
 
 
-def act_parse_json(proxy_items):
+def act_parse_json(proxy_items: list) -> Union[list, None]:
 	"""
 	Parse the proxy list JSON supplied by ActProxy API.
+		:rtype: Union[list, None]
+		:type proxy_items: list
 		:param proxy_items: List of proxy lines returned from ActProxy API.
-		:return: List of dicts containing proxies.
+		:return: List of mo-dots dict objects containing proxies.
 	"""
 	_proxies = []
 	for line in proxy_items:
 		line_spl = line.split(';')
 		host_spl = line_spl[0].split(':')
-		if len(host_spl) >= 3:
+		if len(host_spl) >= 2:
 			_proxies.append({
 				'host': host_spl[0],
 				'port': host_spl[1],
@@ -38,75 +41,87 @@ def act_parse_json(proxy_items):
 	return _proxies
 
 
-def init(api_keys=[], output_format='json', get_userpass=True):
+def init(api_keys: list, output_format='json', get_userpass=True) -> Union[list, None]:
 	"""
 	Synchronously initialize ActProxy API & return proxies from account.
-		:param api_key: ActProxy.com API key.
+		:rtype: Union[list, None]
+		:param api_keys: List of ActProxy.com API keys.
 		:param output_format: 'json' or 'raw'; must be 'json' to use connectors.
 		:param get_userpass: Include usernames & passwords in results? Must be True to use connectors.
-		:return: A mo-dots object (Eg: proxies[0].username or proxies[0]['username']) in the case of 'json' as
-				output_format. A Str in case of 'raw' as output_format.
+		:return: A list of proxies as mo-dots objects if proxies are available. None if not.
 	"""
 	global proxies, one_hot, has_init
+	if api_keys is None:
+		api_keys = []
+		raise ValueError('api_keys must be a list containing at least one API key')
 	userpass = 'true' if get_userpass else 'false'
 	formatter = '&format=json' if output_format == 'json' else ''
 	proxies = []
 	proxies_csv = ''
-	for api_key in api_keys:
+	for key_num, api_key in enumerate(api_keys):
 		api_url = f'https://actproxy.com/proxy-api/{api_key}?userpass={userpass}{formatter}'
 		resp = requests.get(api_url)
 		if resp.status_code == 200:
 			if output_format == 'json':
 				proxy_items = resp.json()
-				_proxies = act_parse_json(proxy_items)
-				if len(proxies):
-					proxies.append(_proxies)
-					has_init = True
 			else:
+				proxy_items = resp.text.splitlines()
 				proxies_csv += resp.text
+			_proxies = act_parse_json(proxy_items)
+			if isinstance(_proxies, list) and len(_proxies):
+				proxies.extend(_proxies)
+				has_init = True
+			else:
+				raise TypeError(f"ActProxy API Key #{key_num} didn't return a proxy list")
 		else:
 			raise ActError(f"HTTP error {resp.status_code} contacting ActProxy.")
 	if output_format == 'json':
 		one_hot = [0 for p in proxies]
-		return to_data(proxies) if len(proxies) else None
+		return to_data(proxies) or None
 	else:
-		return proxies_csv
+		return proxies_csv or None
 
 
-async def aioinit(api_keys=[], output_format='json', get_userpass=True):
+async def aioinit(api_keys: list = None, output_format='json', get_userpass=True) -> Data:
 	"""
 	Asynchronously initialize ActProxy API & return proxies from account.
-		:param api_key: ActProxy.com API key.
+		:param api_keys: List of ActProxy.com API keys.
 		:param output_format: 'json' or 'raw'; must be 'json' to use connectors.
 		:param get_userpass: Include usernames & passwords in results? Must be True to use connectors.
 		:return: A mo-dots object (Eg: proxies[0].username or proxies[0]['username']) in the case of 'json' as
 				output_format. A Str in case of 'raw' as output_format.
 	"""
 	global proxies, one_hot, has_init
+	if api_keys is None:
+		api_keys = []
+		raise ValueError('api_keys must be a list containing at least one API key')
 	async with ClientSession() as session:
 		userpass = 'true' if get_userpass else 'false'
 		formatter = '&format=json' if output_format == 'json' else ''
 		proxies = []
 		proxies_csv = ''
-		for api_key in api_keys:
+		for key_num, api_key in enumerate(api_keys):
 			api_url = f'https://actproxy.com/proxy-api/{api_key}?userpass={userpass}{formatter}'
 			async with session.get(api_url) as resp:
 				if resp.status == 200:
 					if output_format == 'json':
 						proxy_items = await resp.json(content_type=None)
 						_proxies = act_parse_json(proxy_items)
-						if len(_proxies):
-							proxies.append(_proxies)
+						if isinstance(_proxies, list) and len(_proxies):
+							proxies.extend(_proxies)
 							has_init = True
+						else:
+							raise TypeError(f"ActProxy API Key #{key_num} didn't return a proxy list")
 					else:
 						proxies_csv += await resp.text()
 				else:
 					raise ActError(f"HTTP error {resp.status} contacting ActProxy.")
 		if output_format == 'json':
 			one_hot = [0 for p in proxies]
-			return to_data(proxies) if len(proxies) else None
+			return to_data(proxies) or None
 		else:
-			return proxies_csv
+			proxy_lines = proxies_csv.splitlines()
+			return to_data(proxy_lines) if len(proxy_lines) else None
 
 
 def rotate(protocol='socks5'):
@@ -121,46 +136,52 @@ def rotate(protocol='socks5'):
 		'http': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}',
 		'https': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}'
 	}
-	return requests_proxy
+	return to_data(requests_proxy)
 
 
-def aiohttp_rotate(protocol='socks5'):
+def aiohttp_rotate(protocol: str = 'socks5', return_proxy: Any = False) -> Union[ProxyConnector, tuple]:
 	"""
 	Get an aiohttp connector that uses the next proxy in the one-hot rotation after having once run
 	actproxy.aioinit(output_format='json').
 		:param protocol: 'socks5' or 'http'; must correspond to your ActProxy proxies' type.
+		:param return_proxy: Boolean; Return tuple(proxy, ProxyConnector) instead of just ProxyConnector.
 		:return: An aiohttp connector set to use the next proxy.
 	"""
 	proxy = one_hot_proxy()
-	return ProxyConnector.from_url(f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}')
+	proxy_connector = ProxyConnector.from_url(
+		f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}'
+	)
+	return proxy, proxy_connector if return_proxy else proxy_connector
 
 
-def random_proxy(protocol='socks5'):
+def random_proxy(protocol: str = 'socks5') -> Data:
 	"""
 	Get a random proxy from your account after having once run actproxy.init(output_format='json') or
 	actproxy.aioinit(output_format='json')
 		:param protocol: 'socks5' or 'http'; must be the same as your ActProxy proxies.
-		:return: A random proxy mo-dots (Dict-like) object.
+		:return: A random proxy Data (Dict-like) object.
 	"""
 	global proxies
 	last_prox = len(proxies) - 1
 	rand_prox = randrange(0, last_prox)
-	proxy = proxies[rand_prox]
-	requests_proxy = {
+	proxy = to_data(proxies[rand_prox])
+	return to_data({
 		'http': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}',
 		'https': f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}'
-	}
-	return requests_proxy
+	})
 
 
-def aiohttp_random(protocol='socks5'):
+def aiohttp_random(protocol='socks5', return_proxy: Any = False) -> Union[ProxyConnector, tuple]:
 	"""
 	Get a random aiohttp connector after having once run actproxy.aioinit(output_format='json')
 		:param protocol: 'socks5' or 'http'; must be the same as your ActProxy proxies.
-		:return:
+		:param return_proxy: Boolean; Return tuple(proxy, ProxyConnector) instead of just ProxyConnector.
+		:return: ProxyConnector or tuple(proxy: Data, proxy_connector: ProxyConnector)
 	"""
-	proxy = random_proxy()
-	return ProxyConnector.from_url(f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}')
+	proxy = random_proxy(protocol)
+	proxy = proxy.https
+	proxy_connector = ProxyConnector.from_url(proxy)
+	return proxy, proxy_connector if return_proxy else proxy_connector
 
 
 def one_hot_proxy():
