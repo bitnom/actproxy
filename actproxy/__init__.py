@@ -4,10 +4,13 @@ from aiohttp_socks import ProxyType, ProxyConnector, ChainProxyConnector, ProxyE
 from mo_dots import to_data, Data, DataObject, Null, NullType, FlatList, LIST
 from random import randrange
 import requests
-from typing import Union, Any
+from typing import Dict, List, Literal, Tuple, Union, Any
 
 proxies, one_hot = [], []
 has_init = False
+ProxyProto = Literal['socks4', 'socks5', 'http', 'https']
+DumpFormat = Literal['json', 'csv']
+Boolean = Literal[True, False]
 
 
 class ActError(Exception):
@@ -19,7 +22,7 @@ class ActError(Exception):
 		super().__init__(self.message)
 
 
-def act_parse_json(proxy_items: list) -> Union[list, None]:
+def act_parse_json(proxy_items: List[str]) -> Union[List[Dict], None]:
 	"""
 	Parse the proxy list JSON supplied by ActProxy API.
 		:rtype: Union[list, None]
@@ -41,7 +44,7 @@ def act_parse_json(proxy_items: list) -> Union[list, None]:
 	return _proxies
 
 
-def init(api_keys: list, output_format='json', get_userpass=True) -> Union[list, None]:
+def init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: Any = True) -> Union[list, None]:
 	"""
 	Synchronously initialize ActProxy API & return proxies from account.
 		:rtype: Union[list, None]
@@ -82,7 +85,7 @@ def init(api_keys: list, output_format='json', get_userpass=True) -> Union[list,
 		return proxies_csv or None
 
 
-async def aioinit(api_keys: list = None, output_format='json', get_userpass=True) -> Data:
+async def aioinit(api_keys: list = None, output_format: DumpFormat = 'json', get_userpass: Boolean = True) -> Data:
 	"""
 	Asynchronously initialize ActProxy API & return proxies from account.
 		:param api_keys: List of ActProxy.com API keys.
@@ -124,7 +127,7 @@ async def aioinit(api_keys: list = None, output_format='json', get_userpass=True
 			return to_data(proxy_lines) if len(proxy_lines) else None
 
 
-def rotate(protocol='socks5'):
+def rotate(protocol: ProxyProto = 'socks5'):
 	"""
 	Get the next proxy in the one-hot rotation for use with the requests[socks] package after having once run
 	actproxy.init(output_format='json').
@@ -139,7 +142,8 @@ def rotate(protocol='socks5'):
 	return to_data(requests_proxy)
 
 
-def aiohttp_rotate(protocol: str = 'socks5', return_proxy: Any = False) -> Union[ProxyConnector, tuple]:
+def aiohttp_rotate(protocol: ProxyProto = 'socks5',
+                   return_proxy: Boolean = False) -> Union[ProxyConnector, Tuple[Data, ProxyConnector]]:
 	"""
 	Get an aiohttp connector that uses the next proxy in the one-hot rotation after having once run
 	actproxy.aioinit(output_format='json').
@@ -154,7 +158,7 @@ def aiohttp_rotate(protocol: str = 'socks5', return_proxy: Any = False) -> Union
 	return proxy, proxy_connector if return_proxy else proxy_connector
 
 
-def random_proxy(protocol: str = 'socks5') -> Data:
+def random_proxy(protocol: ProxyProto = 'socks5') -> Data:
 	"""
 	Get a random proxy from your account after having once run actproxy.init(output_format='json') or
 	actproxy.aioinit(output_format='json')
@@ -171,7 +175,8 @@ def random_proxy(protocol: str = 'socks5') -> Data:
 	})
 
 
-def aiohttp_random(protocol='socks5', return_proxy: Any = False) -> Union[ProxyConnector, tuple]:
+def aiohttp_random(protocol: ProxyProto = 'socks5',
+                   return_proxy: Boolean = False) -> Union[ProxyConnector, Tuple[Data, ProxyConnector]]:
 	"""
 	Get a random aiohttp connector after having once run actproxy.aioinit(output_format='json')
 		:param protocol: 'socks5' or 'http'; must be the same as your ActProxy proxies.
@@ -184,7 +189,7 @@ def aiohttp_random(protocol='socks5', return_proxy: Any = False) -> Union[ProxyC
 	return proxy, proxy_connector if return_proxy else proxy_connector
 
 
-def one_hot_proxy():
+def one_hot_proxy() -> Data:
 	"""
 	Get the next proxy in the one-hot rotation and flip the next proxy bit hot.
 		:return: mo-dots (Dict-like) object containing the proxy's various parameters.
