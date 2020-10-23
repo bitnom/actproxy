@@ -155,7 +155,10 @@ def aiohttp_rotate(protocol: ProxyProto = 'socks5',
 	proxy_connector = ProxyConnector.from_url(
 		f'{protocol}://{proxy.username}:{proxy.password}@{proxy.host}:{proxy.port}'
 	)
-	return proxy, proxy_connector if return_proxy else proxy_connector
+	if return_proxy:
+		return proxy, proxy_connector
+	else:
+		return proxy_connector
 
 
 def random_proxy(protocol: ProxyProto = 'socks5') -> Data:
@@ -186,7 +189,10 @@ def aiohttp_random(protocol: ProxyProto = 'socks5',
 	proxy = random_proxy(protocol)
 	proxy = proxy.https
 	proxy_connector = ProxyConnector.from_url(proxy)
-	return proxy, proxy_connector if return_proxy else proxy_connector
+	if return_proxy:
+		return proxy, proxy_connector
+	else:
+		return proxy_connector
 
 
 def one_hot_proxy() -> Data:
