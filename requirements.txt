@@ -1,4 +1,9 @@
-aiohttp~=3.6.2
-aiohttp-socks~=0.5.5
-mo-dots~=3.93.20259
-requests[socks]~=2.24.0
+aiohttp==3.*,>=3.6.2
+aiohttp-socks==0.*,>=0.5.5
+mo-dots==3.*,>=3.93.20259
+pylint==2.*,>=2.6.0
+pytest==6.*,>=6.1.1
+pytest-aiohttp==0.*,>=0.3.0
+pytest-asyncio==0.*,>=0.14.0
+requests[socks]==2.*,>=2.24.0
+toml==0.*,>=0.10.1
