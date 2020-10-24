@@ -1,3 +1,4 @@
+from typing import List
 import requests
 import toml
 import actproxy
@@ -14,13 +15,23 @@ ECHO_URL = 'https://ipecho.net/plain'
 
 def test_init():
 	global INITIALIZED
-	api_resp = actproxy.init(ACT_KEYS)
-	assert api_resp not in (None, Null)
-	assert isinstance(api_resp, FlatList)
-	assert len(api_resp) > 0
-	assert isinstance(api_resp[0], Data)
-	assert 'host' in api_resp[0] and 'port' in api_resp[0] \
-	       and 'username' in api_resp[0] and 'password' in api_resp[0]
+	for format in ['json', 'csv']:
+		api_resp = actproxy.init(ACT_KEYS, output_format=format)
+		assert api_resp not in (None, Null)
+		if format == 'json':
+			assert isinstance(api_resp, FlatList)
+			assert len(api_resp) > 0
+			assert isinstance(api_resp[0], Data)
+			assert 'host' in api_resp[0] and 'port' in api_resp[0] \
+			       and 'username' in api_resp[0] and 'password' in api_resp[0]
+		else:
+			assert isinstance(api_resp, str)
+			proxy_lines = api_resp.splitlines()
+			assert len(proxy_lines) > 0
+		assert isinstance(actproxy.proxies, List)
+		assert len(actproxy.proxies) > 0
+		assert 'host' in actproxy.proxies[0] and 'port' in actproxy.proxies[0] \
+		       and 'username' in actproxy.proxies[0] and 'password' in actproxy.proxies[0]
 	INITIALIZED = True
 
 
