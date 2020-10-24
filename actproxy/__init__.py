@@ -1,4 +1,4 @@
-from aiohttp import ClientSession
+from aiohttp import ClientSession, TCPConnector
 from aiohttp_socks import ProxyType, ProxyConnector, ChainProxyConnector, ProxyError, \
 	ProxyConnectionError, ProxyTimeoutError
 from mo_dots import to_data, Data, DataObject, Null, NullType, FlatList, LIST
@@ -98,6 +98,7 @@ async def aioinit(api_keys: List = None, output_format: DumpFormat = 'json', get
 	if api_keys is None:
 		api_keys = []
 		raise ValueError('api_keys must be a list containing at least one API key')
+
 	async with ClientSession() as session:
 		userpass = 'true' if get_userpass else 'false'
 		formatter = '&format=json' if output_format == 'json' else ''
@@ -109,7 +110,6 @@ async def aioinit(api_keys: List = None, output_format: DumpFormat = 'json', get
 				if resp.status == 200:
 					if output_format == 'json':
 						proxy_items = await resp.json(content_type=None)
-
 					else:
 						resp_body = await resp.text()
 						proxy_items = resp_body.splitlines()

@@ -15,10 +15,10 @@ ECHO_URL = 'https://ipecho.net/plain'
 
 def test_init():
 	global INITIALIZED
-	for format in ['json', 'csv']:
-		api_resp = actproxy.init(ACT_KEYS, output_format=format)
+	for _format in ['json', 'csv']:
+		api_resp = actproxy.init(ACT_KEYS, output_format=_format)
 		assert api_resp not in (None, Null)
-		if format == 'json':
+		if _format == 'json':
 			assert isinstance(api_resp, FlatList)
 			assert len(api_resp) > 0
 			assert isinstance(api_resp[0], Data)

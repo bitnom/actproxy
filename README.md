@@ -96,6 +96,8 @@ aiohttp or requests.
 
 ## Changelog
 
+**0.1.6** - _10/24/2020_ : Lock aiohttp version fixing [aiohttp #5112](https://github.com/aio-libs/aiohttp/issues/5112)
+
 **0.1.5** - _10/24/2020_ : Rotator bug fix. CSV fix. Better type-hints & coverage.
 
 **0.1.4** - _10/23/2020_ : Support multiple API keys. Unit tests. Fixes.
