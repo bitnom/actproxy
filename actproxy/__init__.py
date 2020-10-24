@@ -22,7 +22,7 @@ class ActError(Exception):
 		super().__init__(self.message)
 
 
-def act_parse_json(proxy_items: List[str]) -> Union[List[Dict], None]:
+def act_parse_proxies(proxy_items: List[str]) -> Union[List[Dict], None]:
 	"""
 	Parse the proxy list JSON supplied by ActProxy API.
 		:rtype: Union[list, None]
@@ -44,7 +44,7 @@ def act_parse_json(proxy_items: List[str]) -> Union[List[Dict], None]:
 	return _proxies
 
 
-def init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: Any = True) -> Union[list, None]:
+def init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: Any = True) -> Union[FlatList, str, None]:
 	"""
 	Synchronously initialize ActProxy API & return proxies from account.
 		:rtype: Union[list, None]
@@ -59,7 +59,7 @@ def init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: 
 		raise ValueError('api_keys must be a list containing at least one API key')
 	userpass = 'true' if get_userpass else 'false'
 	formatter = '&format=json' if output_format == 'json' else ''
-	proxies = []
+	proxies, proxy_items = [], []
 	proxies_csv = ''
 	for key_num, api_key in enumerate(api_keys):
 		api_url = f'https://actproxy.com/proxy-api/{api_key}?userpass={userpass}{formatter}'
@@ -70,8 +70,8 @@ def init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: 
 			else:
 				proxy_items = resp.text.splitlines()
 				proxies_csv += resp.text
-			_proxies = act_parse_json(proxy_items)
-			if isinstance(_proxies, list) and len(_proxies):
+			_proxies = act_parse_proxies(proxy_items)
+			if isinstance(_proxies, list) and len(_proxies) > 0:
 				proxies.extend(_proxies)
 				has_init = True
 			else:
@@ -82,10 +82,10 @@ def init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: 
 		one_hot = [0 for p in proxies]
 		return to_data(proxies) or None
 	else:
-		return proxies_csv or None
+		return proxies_csv if len(proxy_items) > 0 else None
 
 
-async def aioinit(api_keys: list = None, output_format: DumpFormat = 'json', get_userpass: Boolean = True) -> Data:
+async def aioinit(api_keys: List = None, output_format: DumpFormat = 'json', get_userpass: Boolean = True) -> Union[FlatList, str, None]:
 	"""
 	Asynchronously initialize ActProxy API & return proxies from account.
 		:param api_keys: List of ActProxy.com API keys.
@@ -101,7 +101,7 @@ async def aioinit(api_keys: list = None, output_format: DumpFormat = 'json', get
 	async with ClientSession() as session:
 		userpass = 'true' if get_userpass else 'false'
 		formatter = '&format=json' if output_format == 'json' else ''
-		proxies = []
+		proxies, proxy_items = [], []
 		proxies_csv = ''
 		for key_num, api_key in enumerate(api_keys):
 			api_url = f'https://actproxy.com/proxy-api/{api_key}?userpass={userpass}{formatter}'
@@ -109,25 +109,27 @@ async def aioinit(api_keys: list = None, output_format: DumpFormat = 'json', get
 				if resp.status == 200:
 					if output_format == 'json':
 						proxy_items = await resp.json(content_type=None)
-						_proxies = act_parse_json(proxy_items)
-						if isinstance(_proxies, list) and len(_proxies):
-							proxies.extend(_proxies)
-							has_init = True
-						else:
-							raise TypeError(f"ActProxy API Key #{key_num} didn't return a proxy list")
+
 					else:
-						proxies_csv += await resp.text()
+						resp_body = await resp.text()
+						proxy_items = resp_body.splitlines()
+						proxies_csv += resp_body
+					_proxies = act_parse_proxies(proxy_items)
+					if isinstance(_proxies, list) and len(_proxies):
+						proxies.extend(_proxies)
+						has_init = True
+					else:
+						raise TypeError(f"ActProxy API Key #{key_num} didn't return a proxy list")
 				else:
 					raise ActError(f"HTTP error {resp.status} contacting ActProxy.")
 		if output_format == 'json':
 			one_hot = [0 for p in proxies]
 			return to_data(proxies) or None
 		else:
-			proxy_lines = proxies_csv.splitlines()
-			return to_data(proxy_lines) if len(proxy_lines) else None
+			return proxies_csv if len(proxy_items) > 0 else None
 
 
-def rotate(protocol: ProxyProto = 'socks5'):
+def rotate(protocol: ProxyProto = 'socks5') -> Data:
 	"""
 	Get the next proxy in the one-hot rotation for use with the requests[socks] package after having once run
 	actproxy.init(output_format='json').
