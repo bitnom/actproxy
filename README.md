@@ -49,25 +49,54 @@ if resp.status_code == 200:
 
 ## Methods
 
-`actproxy.aioinitaioinit(api_keys=[], output_format='json', get_userpass=True)`: Fetches your proxies from ActProxy & returns them. Must be run before the other aiohttp
+```python
+actproxy.aioinit(api_keys: List = None, output_format: DumpFormat = 'json', get_userpass: Boolean = True) -> Union[FlatList, str, None]
+```
+
+Fetches your proxies from ActProxy & returns them. Must be run before the other aiohttp
 functions.
 
-`actproxy.initinit(api_keys=[], output_format='json', get_userpass=True)`: Fetches your proxies from ActProxy & returns
+```python
+actproxy.init(api_keys: List[str], output_format: DumpFormat = 'json', get_userpass: Any = True) -> Union[FlatList, str, None]
+```
+
+Fetches your proxies from ActProxy & returns
 them. Must be run before the other synchronous functions.
 
-`actproxy.aiohttp_rotate(protocol='socks5')`: Returns an aiohttp connector which uses the next proxy from your list.
+```python
+actproxy.aiohttp_rotate(protocol: ProxyProto = return_proxy: Boolean = False) -> Union[ProxyConnector, Tuple[Data, ProxyConnector]]
+```
 
-`actproxy.rotate(protocol='socks5')`: Returns the next proxy from your list. Return variable is suitable for use with requests[socks].
+Returns an aiohttp connector which uses the next proxy from your list.
 
-`actproxy.random_proxy(protocol='socks5')`: Returns a random proxy from your list. Return variable is suitable for use with
+```python
+actproxy.rotate(protocol: ProxyProto = 'socks5') -> Data
+```
+Returns the next proxy from your list. Return variable is suitable for use with requests[socks].
+
+```python
+actproxy.random_proxy(protocol: ProxyProto = 'socks5') -> Data
+```
+
+Returns a random proxy from your list. Return variable is suitable for use with
 requests[socks].
 
-`actproxy.aiohttp_random(protocol='socks5')`: Returns an aiohttp connector which uses uses a random proxy from your list.
+```python
+actproxy.aiohttp_random(protocol: ProxyProto = 'socks5', return_proxy: Boolean = False) -> Union[ProxyConnector, Tuple[Data, ProxyConnector]]
+```
 
-`actproxy.one_hot_proxy()`: Similar to rotate() but returns a single proxy dict/object for use in places other than
+Returns an aiohttp connector which uses uses a random proxy from your list.
+
+```python
+actproxy.one_hot_proxy() -> Data
+```
+
+Similar to rotate() but returns a single proxy dict/object for use in places other than
 aiohttp or requests.
 
 ## Changelog
+
+**0.1.5** - _10/24/2020_ : Rotator bug fix. CSV fix. Better type-hints & coverage.
 
 **0.1.4** - _10/23/2020_ : Support multiple API keys. Unit tests. Fixes.
 
