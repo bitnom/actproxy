@@ -96,6 +96,8 @@ aiohttp or requests.
 
 ## Changelog
 
+**0.1.8** - _10/28/2020_ : Fixed versioning typo.
+
 **0.1.7** - _10/28/2020_ : Relax Python version constraint (3.8-4.0).
 
 **0.1.6** - _10/24/2020_ : Lock aiohttp version fixing [aiohttp #5112](https://github.com/aio-libs/aiohttp/issues/5112)
