@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "actproxy"
-version = "0.1.9"
+version = "0.2.0"
 description = "Sync & asyncio (Requests & AIOHTTP) proxy rotator + utils for actproxy API & services."
 authors = ["TensorTom <14287229+TensorTom@users.noreply.github.com>"]
 license = "MIT"
@@ -32,7 +32,7 @@ pytest-aiohttp = "^0.3.0"
 toml = "^0.10.1"
 typing_extensions = "^3.7.4"
 kiss-headers = "^2.2.3"
-python-socks = "^1.1.0"
+python-socks = {extras = ["asyncio"], version = "^1.1.0"}
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.6.0"
