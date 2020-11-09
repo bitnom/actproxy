@@ -4,7 +4,11 @@ import toml
 import actproxy
 from actproxy import Data, Null, FlatList, ProxyConnector
 
-store = toml.load('secrets.toml')
+try:
+	store = toml.load('secrets.toml')
+except FileNotFoundError:
+	print("ACTPROXY ERROR: You need a secrets.toml file containing your ActProxy key(s) in the current working directory.")
+
 ACT_KEYS = [
 	store['act']['api_keys'][0],
 	store['act']['api_keys'][1]
@@ -39,14 +43,14 @@ async def test_aiohttp_rotate():
 	global INITIALIZED
 	assert INITIALIZED is True
 	proxy_connector = actproxy.aiohttp_rotate(protocol='socks5', return_proxy=False)
-	proxy, _proxy_connector = actproxy.aiohttp_rotate(protocol='socks5', return_proxy=True)
 	assert isinstance(proxy_connector, ProxyConnector)
+	proxy, _proxy_connector = actproxy.aiohttp_rotate(protocol='socks5', return_proxy=True)
+	assert isinstance(_proxy_connector, ProxyConnector)
 	assert isinstance(proxy, Data)
-	async with ClientSession(connector=proxy_connector, requote_redirect_url=False) as _session:
+	async with ClientSession(connector=_proxy_connector, requote_redirect_url=False) as _session:
 		async with _session.get(ECHO_URL, max_redirects=30) as _resp:
 			assert _resp.status == 200
 			remote_ip = await _resp.text()
-			print('IP: ', remote_ip)
 			assert remote_ip == proxy.host
 
 
@@ -61,3 +65,11 @@ async def test_aiohttp_random():
 			assert _resp.status == 200
 			remote_ip = await _resp.text()
 			assert remote_ip in proxy
+
+
+async def test_asyncio_rotate():
+	global INITIALIZED
+	assert INITIALIZED is True
+	_resp, _proxy = await actproxy.async_rotate_fetch(ECHO_URL, protocol='socks5', return_proxy=True)
+	assert _resp.status_code == 200
+	assert _resp.text == _proxy.host

@@ -4,7 +4,11 @@ import toml
 import actproxy
 from actproxy import Data, Null, FlatList
 
-store = toml.load('secrets.toml')
+try:
+	store = toml.load('secrets.toml')
+except FileNotFoundError:
+	print("ACTPROXY ERROR: You need a secrets.toml file containing your ActProxy key(s) in the current working directory.")
+
 ACT_KEYS = [
 	store['act']['api_keys'][0],
 	store['act']['api_keys'][1]

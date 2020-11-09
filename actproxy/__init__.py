@@ -1,3 +1,4 @@
+import asyncio
 from aiohttp import ClientSession, TCPConnector
 from aiohttp_socks import ProxyType, ProxyConnector, ChainProxyConnector, ProxyError, \
 	ProxyConnectionError, ProxyTimeoutError
@@ -5,6 +6,13 @@ from mo_dots import to_data, Data, DataObject, Null, NullType, FlatList, LIST
 from random import randrange
 import requests
 from typing import Dict, List, Literal, Tuple, Union, Any
+from urllib3 import PoolManager, HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.connection import HTTPConnection, HTTPSConnection
+from urllib.parse import urlparse
+from python_socks.async_.asyncio import Proxy as AsyncProxy
+import ssl
+from kiss_headers import parse_it
+
 
 proxies, one_hot = [], []
 has_init = False
@@ -13,13 +21,17 @@ DumpFormat = Literal['json', 'csv']
 Boolean = Literal[True, False]
 
 
+def strip_http_headers(http_reply):
+	p = http_reply.find('\r\n\r\n')
+	if p >= 0:
+		return http_reply[p + 4:]
+	return http_reply
+
+
 class ActError(Exception):
 	""" General ActProxy exception. ActProxy also exports aiohttp[socks] exceptions: ProxyError, ProxyConnectionError,
 	ProxyTimeoutError"""
-
-	def __init__(self, message):
-		self.message = message
-		super().__init__(self.message)
+	pass
 
 
 def act_parse_proxies(proxy_items: List[str]) -> Union[List[Dict], None]:
@@ -219,3 +231,46 @@ def one_hot_proxy() -> Data:
 	else:
 		one_hot[hdex + 1] = 1
 	return to_data(proxies[hdex])
+
+
+async def async_rotate_fetch(url: str, protocol: ProxyProto = 'socks5', return_proxy: Boolean = False) -> Union[
+	Data, Tuple[Data, Data]]:
+	"""
+	Rotate proxies and perform a GET request. Returns a Data object of `response.status_code`, `response.text`, and
+	`response.headers`.
+		:param url: URL to fetch.
+		:param protocol: 'socks5' or 'http'; must correspond to your ActProxy proxies' type.
+		:param return_proxy: Boolean; Return tuple(proxy, ProxyConnector) instead of just ProxyConnector.
+		:return: A Data object of the response with resp.text, resp.status_code, and resp.headers
+	"""
+	url_parts = urlparse(url)
+	url_port = 443 if url_parts.scheme == 'https' else 80
+	url_path = url_parts.path
+	actproxy = one_hot_proxy()
+
+	if proxy := AsyncProxy.from_url(
+			f'{protocol}://{actproxy.username}:{actproxy.password}@{actproxy.host}:{actproxy.port}'
+	):
+		sock = await proxy.connect(dest_host=url_parts.hostname, dest_port=url_port)
+		reader, writer = await asyncio.open_connection(
+			host=None,
+			port=None,
+			sock=sock,
+			ssl=ssl.create_default_context(),
+			server_hostname=url_parts.hostname,
+		)
+		request = (
+				b'GET '+url_path.encode()+b' HTTP/1.1\r\n'
+				b'Host: '+url_parts.hostname.encode()+b'\r\n'
+				b'Connection: close\r\n\r\n'
+		)
+		writer.write(request)
+		_resp = await reader.read(-1)
+		body = _resp.decode('UTF-8').split('\r\n\r\n', 1)[-1]
+		status_code = int(_resp.decode('UTF-8').split('\r\n', 1)[0].split(' ')[1])
+		headers = parse_it(_resp)
+		response_data = Data(text=body, status_code=status_code, headers=headers)
+		if return_proxy:
+			return response_data, actproxy
+		else:
+			return response_data

@@ -64,10 +64,17 @@ Fetches your proxies from ActProxy & returns
 them. Must be run before the other synchronous functions.
 
 ```python
-actproxy.aiohttp_rotate(protocol: ProxyProto = return_proxy: Boolean = False) -> Union[ProxyConnector, Tuple[Data, ProxyConnector]]
+actproxy.aiohttp_rotate(protocol: ProxyProto/str, return_proxy: Boolean = False) -> Union[ProxyConnector, Tuple[Data, ProxyConnector]]
 ```
 
 Returns an aiohttp connector which uses the next proxy from your list.
+
+```python
+actproxy.async_rotate_fetch(url: str, protocol: ProxyProto/str = 'socks5', return_proxy: Boolean = False) -> Data
+```
+
+Rotate proxies and perform a GET request. Returns a Data object of `response.status_code`, `response.text`, and
+`response.headers`.
 
 ```python
 actproxy.rotate(protocol: ProxyProto = 'socks5') -> Data
@@ -95,6 +102,8 @@ Similar to rotate() but returns a single proxy dict/object for use in places oth
 aiohttp or requests.
 
 ## Changelog
+
+**0.1.9** - _11/09/2020_ : New asyncio rotation methods based on python_socks.
 
 **0.1.8** - _10/28/2020_ : Fixed versioning typo.
 
